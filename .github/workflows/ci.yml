@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# A new push to the same branch makes the previous run pointless.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (.NET)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # Restoring separately from the build makes it obvious in the log whether
+      # a failure is a dependency problem or a compile error.
+      - name: Restore
+        run: dotnet restore backend/CafeOps.slnx
+
+      - name: Build
+        run: dotnet build backend/CafeOps.slnx --no-restore --configuration Release
+
+      # The test suite covers the domain layer, which has no I/O, so CI needs no
+      # database, no secrets and no service containers. That is a deliberate
+      # consequence of keeping the rules separate from the persistence.
+      - name: Test
+        run: >
+          dotnet test backend/CafeOps.slnx
+          --no-build
+          --configuration Release
+          --logger "trx;LogFileName=results.trx"
+          --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-test-results
+          path: TestResults/
+          retention-days: 7
+
+  app:
+    name: App (Flutter)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.50.0'
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        working-directory: app
+        run: flutter pub get
+
+      - name: Check formatting
+        working-directory: app
+        run: dart format --output=none --set-exit-if-changed .
+
+      # Treat analyzer hints as failures: the repository is clean today, so any
+      # new warning is something this change introduced.
+      - name: Analyze
+        working-directory: app
+        run: flutter analyze --fatal-infos --fatal-warnings
+
+      - name: Test
+        working-directory: app
+        run: flutter test
+
+      # Proves the app still compiles for release, which `analyze` does not.
+      - name: Build web
+        working-directory: app
+        run: flutter build web --release

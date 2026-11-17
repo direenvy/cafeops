@@ -1,5 +1,5 @@
-name: app
-description: "A new Flutter project."
+name: cafeops
+description: "CafeOps - cafe floor operations: live order board, stock control and sales reporting."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -36,6 +36,9 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   http: ^1.6.0
+  supabase_flutter: ^2.18.3
+  flutter_riverpod: ^3.5.0
+  intl: ^0.20.3
 
 dev_dependencies:
   flutter_test:
