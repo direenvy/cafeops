@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CafeOps.Api/CafeOps.Api.csproj" />
+    <Project Path="src/CafeOps.Domain/CafeOps.Domain.csproj" />
+    <Project Path="src/CafeOps.Infrastructure/CafeOps.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CafeOps.Tests/CafeOps.Tests.csproj" />
+  </Folder>
+</Solution>
