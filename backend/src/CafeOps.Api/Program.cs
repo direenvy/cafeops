@@ -35,6 +35,17 @@ if (supabase is null
 
 // ------------------------------------------------------------------- services
 
+// Container platforms (Render, Fly.io, Cloud Run) choose the port and publish
+// it as PORT. Without this the app binds its own default, the platform routes
+// to a port nothing is listening on, and every request times out with no error
+// anywhere to explain it.
+var port = Environment.GetEnvironmentVariable("PORT");
+
+if (!string.IsNullOrWhiteSpace(port))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+}
+
 builder.Services.AddCafeOpsInfrastructure(builder.Configuration);
 builder.Services.AddCafeOpsAuth(supabase);
 

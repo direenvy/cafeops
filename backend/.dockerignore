@@ -1,0 +1,17 @@
+# Keep build output and local state out of the build context: it makes the
+# upload smaller, and stops a stale local bin/ from shadowing what the image
+# builds for itself.
+**/bin/
+**/obj/
+**/TestResults/
+**/.vs/
+**/*.user
+
+# Tests are not published into the image.
+tests/
+
+# Never, under any circumstances, into an image.
+**/appsettings.Local.json
+**/appsettings.*.Local.json
+**/.env
+**/*.pfx

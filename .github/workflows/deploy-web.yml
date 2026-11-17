@@ -1,0 +1,100 @@
+name: Deploy web
+
+# Publishes the Flutter web build to GitHub Pages on every push to main, so
+# the demo never drifts from the code someone is reading in the same repo.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and skip any that a newer push has overtaken.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.50.0'
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        working-directory: app
+        run: flutter pub get
+
+      # Repository variables are read here rather than baked into the source so
+      # the API can move without a code change. They are variables, not
+      # secrets: a publishable key and a public URL are meant to ship inside a
+      # client, and marking them secret would only make them awkward to read
+      # back without making them safer.
+      - name: Build
+        working-directory: app
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+
+          # Pages serves this repository at /cafeops/, so the app has to be
+          # built for that sub-path. Without it every asset resolves against
+          # the domain root and the page loads blank.
+          args=(--release --base-href "/${GITHUB_REPOSITORY#*/}/")
+
+          if [ -n "${API_BASE_URL}" ]; then
+            args+=("--dart-define=API_BASE_URL=${API_BASE_URL}")
+          else
+            echo "::warning::API_BASE_URL is not set, so the build keeps its"\
+                 "localhost default. Sign-in and reads will work; placing an"\
+                 "order will not. Set it under Settings > Secrets and"\
+                 "variables > Actions > Variables."
+          fi
+
+          # Both optional: the source already defaults to this project's own
+          # Supabase instance. Set them to point a fork somewhere else.
+          if [ -n "${SUPABASE_URL}" ]; then
+            args+=("--dart-define=SUPABASE_URL=${SUPABASE_URL}")
+          fi
+
+          if [ -n "${SUPABASE_PUBLISHABLE_KEY}" ]; then
+            args+=("--dart-define=SUPABASE_PUBLISHABLE_KEY=${SUPABASE_PUBLISHABLE_KEY}")
+          fi
+
+          flutter build web "${args[@]}"
+
+      # Pages serves exactly what is uploaded, with no SPA fallback. The app
+      # has no client-side routes, so index.html is enough — but a 404 copy
+      # keeps a mistyped path showing the app rather than GitHub's error page.
+      - name: Add a 404 fallback
+        run: cp app/build/web/index.html app/build/web/404.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: app/build/web
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
