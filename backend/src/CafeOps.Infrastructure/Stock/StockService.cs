@@ -223,8 +223,9 @@ public sealed class StockService(
         Reason: EnumNaming.FromPostgres<StockReason>(row.Reason),
         Note: row.Note,
         CreatedByName: row.CreatedByName,
-        CreatedAt: row.CreatedAt);
+        CreatedAt: row.CreatedAt.AsUtc());
 
+    // DateTime, not DateTimeOffset: see Database/Timestamps.cs.
     private sealed record StockMovementRow(
         Guid Id,
         Guid IngredientId,
@@ -234,7 +235,7 @@ public sealed class StockService(
         string Reason,
         string? Note,
         string? CreatedByName,
-        DateTimeOffset CreatedAt);
+        DateTime CreatedAt);
 
     private static class Sql
     {

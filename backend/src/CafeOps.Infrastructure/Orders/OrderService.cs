@@ -169,7 +169,7 @@ public sealed class OrderService(
             Status: header.Status,
             Totals: priced.Totals,
             Lines: priced.Lines,
-            CreatedAt: header.CreatedAt);
+            CreatedAt: header.CreatedAt.AsUtc());
     }
 
     public async Task<Result<Receipt>> CheckoutAsync(
@@ -239,7 +239,7 @@ public sealed class OrderService(
             TableLabel: header.TableLabel,
             Totals: new OrderTotals(header.Subtotal, header.ServiceCharge, header.Tax, header.Total),
             Lines: lines,
-            PaidAt: header.ClosedAt,
+            PaidAt: header.ClosedAt.AsUtc(),
             ServedBy: servedBy ?? "Unknown");
     }
 
@@ -322,18 +322,21 @@ public sealed class OrderService(
             Status: OrderStatus.Cancelled,
             Totals: OrderTotals.Zero,
             Lines: lines,
-            CreatedAt: header.CreatedAt);
+            CreatedAt: header.CreatedAt.AsUtc());
     }
 
     // Row shapes used only inside this class. Column aliases are lower-case and
     // unspaced so Dapper's case-insensitive matching binds them to the record
     // constructors without any extra configuration.
+    // DateTime, not DateTimeOffset: Npgsql materialises timestamptz as a UTC
+    // DateTime, and a record declaring DateTimeOffset gives Dapper no
+    // constructor it can match. Converted at the boundary with AsUtc().
     private sealed record OrderHeaderRow(
         Guid Id,
         string OrderNumber,
         string? TableLabel,
         OrderStatus Status,
-        DateTimeOffset CreatedAt);
+        DateTime CreatedAt);
 
     private sealed record PaidOrderRow(
         Guid Id,
@@ -343,7 +346,7 @@ public sealed class OrderService(
         decimal ServiceCharge,
         decimal Tax,
         decimal Total,
-        DateTimeOffset ClosedAt);
+        DateTime ClosedAt);
 
     private static class Sql
     {

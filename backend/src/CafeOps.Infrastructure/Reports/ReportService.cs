@@ -68,7 +68,9 @@ public sealed class ReportService(IDbConnectionFactory connectionFactory) : IRep
     {
         public const string ByDay = """
             select business_day        as businessday,
-                   orders_paid         as orderspaid,
+                   -- count(*) in the view is a bigint; DailySales.OrdersPaid
+                   -- is an int, and Dapper will not narrow it for us.
+                   orders_paid::int    as orderspaid,
                    subtotal,
                    service_charge      as servicecharge,
                    tax,

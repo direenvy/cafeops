@@ -19,7 +19,8 @@ public interface IDbConnectionFactory
 /// per request would discard the connection pool each time and turn every call
 /// into a fresh TCP and TLS handshake to the database.
 /// </remarks>
-public sealed class NpgsqlConnectionFactory : IDbConnectionFactory, IAsyncDisposable
+public sealed class NpgsqlConnectionFactory
+    : IDbConnectionFactory, IDisposable, IAsyncDisposable
 {
     private readonly NpgsqlDataSource _dataSource;
 
@@ -50,6 +51,11 @@ public sealed class NpgsqlConnectionFactory : IDbConnectionFactory, IAsyncDispos
 
         return connection;
     }
+
+    // Both, deliberately. A container torn down synchronously throws on a
+    // service that only offers IAsyncDisposable, and not every host disposes
+    // asynchronously — ASP.NET Core does, a plain ServiceProvider may not.
+    public void Dispose() => _dataSource.Dispose();
 
     public ValueTask DisposeAsync() => _dataSource.DisposeAsync();
 }
