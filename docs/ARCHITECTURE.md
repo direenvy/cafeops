@@ -141,7 +141,7 @@ order validation and stock arithmetic are pure functions over plain records.
 Interfaces for persistence are declared there and implemented in
 `CafeOps.Infrastructure`.
 
-This is why 59 tests run in 60 milliseconds with no database, no containers and
+This is why 67 tests run in 60 milliseconds with no database, no containers and
 no secrets in CI. It is also why the rules that matter — tax on the subtotal
 plus service charge, away-from-zero rounding, requirements aggregated across
 lines — can be tested exhaustively instead of sampled through a stack.
@@ -228,10 +228,13 @@ to the change that introduced it.
 
 In the order I would actually do it:
 
-1. **Integration tests against a real Postgres** with Testcontainers. The domain
-   layer is covered thoroughly and the SQL is not, which is the real gap. The
-   transactions, the RLS policies and the guard triggers all deserve tests that
-   exercise them for real.
+1. **Integration tests against a real Postgres** with Testcontainers, finishing
+   what the four smoke tests started. Those cover materialisation and the
+   place-then-cancel round trip, but only when a developer happens to have a
+   connection string configured, so CI never runs them. A disposable Postgres
+   would make them unconditional and let the RLS policies and guard triggers be
+   tested properly — those are the security boundary and currently nothing
+   verifies they do what section 5 claims.
 2. **A payment provider**, so taking money is a payment rather than a state
    change.
 3. **Shift reporting** — takings per person per shift, which is the first thing

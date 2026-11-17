@@ -105,7 +105,8 @@ the one credential you have to fetch yourself — is in
 
 ## Tests
 
-89 tests, no database required.
+101 tests. 97 of them need no database, no secrets and no service containers,
+which is why CI runs the lot in seconds.
 
 ```bash
 dotnet test backend/CafeOps.slnx
@@ -115,10 +116,19 @@ dotnet test backend/CafeOps.slnx
 cd app && flutter test
 ```
 
-The backend's 59 tests cover the domain layer, which has no I/O at all: the
-pricing rules, the order validation, and the stock arithmetic. That is why CI
-needs no database, no secrets and no service containers — a deliberate
-consequence of keeping the rules separate from the persistence.
+The backend's 67 unit tests cover the domain layer, which has no I/O at all:
+the pricing rules, the order validation, and the stock arithmetic. That they
+need nothing to run is a deliberate consequence of keeping the rules separate
+from the persistence.
+
+The other 4 are smoke tests that run each query against a real database, and
+they exist because of a failure nothing else could have caught. Npgsql
+materialises a Postgres `timestamptz` as a `DateTime` while the row records
+declared `DateTimeOffset`, so Dapper could not match a constructor: everything
+compiled, every unit test passed, and the first real order returned a 500. A
+column-to-record mismatch is only observable against a live database. They
+no-op when no connection string is configured, so CI stays free of secrets;
+Testcontainers is the proper fix and is still on the list.
 
 Worth a look, because they pin down the things that would actually cost money:
 
@@ -167,7 +177,7 @@ backend/
   src/CafeOps.Domain/       pure rules: pricing, validation, stock maths
   src/CafeOps.Infrastructure/  Npgsql + Dapper, one transaction per operation
   src/CafeOps.Api/          controllers, JWT auth, role policies
-  tests/CafeOps.Tests/      59 unit tests
+  tests/CafeOps.Tests/      71 tests: 67 unit, 4 against a live database
 supabase/
   migrations/               the schema, in order; source of truth
   seed.sql                  idempotent demo data
@@ -186,6 +196,9 @@ Worth stating plainly rather than leaving for someone to find:
 - **The board re-reads on change rather than patching the changed row.** Correct
   and simple at a cafe's scale; it would need to become incremental at
   thousands of open orders.
-- **No integration tests against a real database.** The domain layer is covered
-  thoroughly and the SQL is not; testing the transactions properly wants
-  Testcontainers, which is the first thing I would add next.
+- **Database testing is only half done.** Four smoke tests exercise each query
+  against a real database, which is enough to catch a column that no longer
+  matches its record. But they only run where a connection string happens to be
+  configured, so CI never runs them, and the RLS policies and guard triggers
+  have no tests at all. Testcontainers would give CI a disposable Postgres and
+  close both gaps; it is the first thing I would add next.
