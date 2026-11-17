@@ -128,7 +128,12 @@ public static class AuthSetup
                 options.MapInboundClaims = false;
             });
 
-        services.AddSingleton<IAuthorizationHandler, MinimumRoleHandler>();
+        // Scoped, not singleton: this handler depends on IUserDirectory, which
+        // is scoped because it holds a per-request database connection. A
+        // singleton capturing a scoped service would either be rejected at
+        // startup (it is) or, with validation off, quietly hold one request's
+        // connection for the lifetime of the process.
+        services.AddScoped<IAuthorizationHandler, MinimumRoleHandler>();
 
         services.AddAuthorizationBuilder()
             .AddPolicy(Policies.Staff, policy => policy
