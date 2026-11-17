@@ -1,5 +1,6 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../core/api_client.dart';
 import '../core/theme.dart';
@@ -64,10 +65,19 @@ class ErrorState extends StatelessWidget {
     // An unreachable API during development almost always means the backend is
     // not running, so say that rather than showing a socket error.
     final (title, detail) = switch (error) {
+      // On the web these are two different problems that look identical from
+      // here: the browser deliberately hides whether a request failed because
+      // nothing answered or because CORS rejected it, so the message names
+      // both rather than guessing and sending someone the wrong way.
       ApiUnreachable(:final baseUrl) => (
         'Cannot reach the API',
-        'Nothing answered at $baseUrl.\n'
-            'Start it with: dotnet run --project backend/src/CafeOps.Api',
+        kIsWeb
+            ? 'Nothing answered at $baseUrl, or the browser blocked the '
+                  'request because this page is not an allowed origin.\n'
+                  'Check the API is running, and that its CORS policy accepts '
+                  'this address.'
+            : 'Nothing answered at $baseUrl.\n'
+                  'Start it with: dotnet run --project backend/src/CafeOps.Api',
       ),
       ApiException(:final statusCode, :final message)
           when statusCode == 401 || statusCode == 403 =>

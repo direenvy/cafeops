@@ -67,9 +67,25 @@ const string CorsPolicy = "cafeops-clients";
 
 builder.Services.AddCors(options => options.AddPolicy(CorsPolicy, policy =>
 {
+    if (builder.Environment.IsDevelopment())
+    {
+        // `flutter run -d chrome` serves the app from a fresh random port on
+        // every launch, so a fixed allow-list is unusable in development: the
+        // browser blocks the call, and a blocked call is indistinguishable
+        // from an unreachable server to the app. Any loopback origin is
+        // accepted here, and only here.
+        policy.SetIsOriginAllowed(origin =>
+                  Uri.TryCreate(origin, UriKind.Absolute, out var uri) && uri.IsLoopback)
+              .AllowAnyHeader()
+              .WithMethods("GET", "POST", "OPTIONS");
+        return;
+    }
+
     if (allowedOrigins.Length == 0)
     {
-        // Nothing configured: allow nothing rather than everything.
+        // Nothing configured in production: allow nothing rather than
+        // everything, so a missing setting fails visibly instead of opening
+        // the API to any origin.
         policy.WithOrigins();
         return;
     }
