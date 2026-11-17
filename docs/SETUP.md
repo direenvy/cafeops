@@ -51,10 +51,21 @@ without them rather than failing later on the first request.
 **Project URL** — in the dashboard under *Project Settings → API*. It looks like
 `https://abcdefghijklmnop.supabase.co`.
 
-**Postgres connection string** — in the dashboard under *Project Settings →
-Database → Connection string → .NET*, using the **session pooler**. It contains
-your database password. If you have never set that password, or do not have it,
-use *Reset database password* on the same page and take the new one.
+**Postgres connection string** — click **Connect**, the green button in the
+dashboard's top toolbar, and choose the **session pooler** (not Direct
+connection, and not the transaction pooler: session mode behaves like an
+ordinary Postgres connection, which is what the API's long-lived
+`NpgsqlDataSource` expects).
+
+First, though, you need the password, and it is probably not recoverable. Under
+*Database → Settings → Database password*, Supabase says plainly that the
+password "isn't viewable after creation" — and if the project was created
+through the API or CLI rather than the dashboard, it was generated and never
+shown to anyone. **Reset password**, and copy the new one immediately, because
+you will not be able to read it back either.
+
+The pooler's username is `postgres.<your-project-ref>`, not plain `postgres`.
+That is the most common reason a connection string that looks right is refused.
 
 > This is the one step nobody else can do for you, and the reason is the point:
 > that connection string is the credential that lets the API bypass row-level
@@ -76,8 +87,18 @@ dotnet user-secrets set "Supabase:ProjectUrl" "https://<your-ref>.supabase.co"
 ```
 
 ```bash
-dotnet user-secrets set "Supabase:ConnectionString" "Host=aws-0-<region>.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.<your-ref>;Password=<your-password>;SSL Mode=Require;Trust Server Certificate=true"
+dotnet user-secrets set "Supabase:ConnectionString" 'Host=aws-1-<region>.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.<your-ref>;Password=<your-password>;SSL Mode=Require;Trust Server Certificate=true'
 ```
+
+Use **single** quotes around that value. Generated passwords often contain `$`,
+which both PowerShell and bash expand inside double quotes, silently corrupting
+the password. If the password contains a `;` it will break the connection string
+itself — reset it again to get one that does not.
+
+`Trust Server Certificate=true` skips verification of the server's certificate.
+It is here because it works against every Supabase endpoint without extra setup.
+A production deployment should prefer `SSL Mode=VerifyFull` with the project's
+CA certificate, downloadable from the same settings page.
 
 In production, set the same two keys as environment variables instead:
 `Supabase__ProjectUrl` and `Supabase__ConnectionString`.
