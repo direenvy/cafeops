@@ -5,6 +5,11 @@ things are sold, and sales reporting.
 
 Flutter client · ASP.NET Core API · Supabase (Postgres, Auth, Realtime)
 
+**[Live demo](https://direenvy.github.io/cafeops/)** — sign up with any email.
+New accounts start as staff, which is deliberate: the role is never taken from
+anything the client sends, so the manager screens stay hidden until an owner
+grants them.
+
 ---
 
 ## Why it is built this way
