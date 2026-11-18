@@ -8,10 +8,18 @@ Flutter client · ASP.NET Core API · Supabase (Postgres, Auth, Realtime)
 [![CI](https://github.com/direenvy/cafeops/actions/workflows/ci.yml/badge.svg)](https://github.com/direenvy/cafeops/actions/workflows/ci.yml)
 [![Deploy web](https://github.com/direenvy/cafeops/actions/workflows/deploy-web.yml/badge.svg)](https://github.com/direenvy/cafeops/actions/workflows/deploy-web.yml)
 
-**[Live demo](https://direenvy.github.io/cafeops/)** — sign up with any email.
-New accounts start as staff, which is deliberate: the role is never taken from
-anything the client sends, so the manager screens stay hidden until an owner
-grants them.
+**[Live demo](https://direenvy.github.io/cafeops/)** — sign in as
+`demo@cafeops.app` / `CafeOpsDemo2026`
+
+That account is a **manager**, so it can take payment, cancel an order, book in
+a delivery and read the reports. Signing up instead gets you a **staff**
+account with none of those, which is deliberate rather than an oversight: the
+role is never taken from anything the client sends, so a sign-up form cannot
+make itself a manager. Changing roles is owner-only, and the demo account is
+not an owner — worth a try if you want to watch the database refuse something.
+
+It is hosted on a free tier that sleeps when idle, so the first write may take
+up to a minute while the API wakes. After that it is immediate.
 
 ---
 
