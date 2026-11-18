@@ -44,8 +44,14 @@ the repository directly.
    | Key | Value |
    |---|---|
    | `Supabase__ProjectUrl` | `https://<your-ref>.supabase.co` |
-   | `Supabase__ConnectionString` | the session-pooler string from `docs/SETUP.md` |
+   | `Supabase__ConnectionString` | the session-pooler string, in either form below |
    | `Cors__AllowedOrigins__0` | `https://direenvy.github.io` |
+
+   The connection string is accepted either as Npgsql keyword form
+   (`Host=…;Port=5432;Database=postgres;Username=…;Password=…`) or as the URI
+   the dashboard shows (`postgresql://user:password@host:5432/postgres`). Both
+   carry the same information, and Supabase offers both a few clicks apart, so
+   the app converts rather than refusing one of them.
 
    The CORS value is the **origin only** — scheme and host, no path and no
    trailing slash. `https://direenvy.github.io/cafeops/` will not match, and the

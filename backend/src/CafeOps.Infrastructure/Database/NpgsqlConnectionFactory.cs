@@ -28,7 +28,11 @@ public sealed class NpgsqlConnectionFactory
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        var builder = new NpgsqlDataSourceBuilder(options.Value.ConnectionString);
+        // Normalised first: hosting platforms hand out URI-style connection
+        // strings, which Npgsql rejects with a message that names neither the
+        // setting nor the problem.
+        var builder = new NpgsqlDataSourceBuilder(
+            ConnectionStrings.Normalize(options.Value.ConnectionString));
 
         // Postgres enums arrive as their snake_case labels. Mapping them here
         // means the rest of the code reads and writes real C# enums.

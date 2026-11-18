@@ -21,4 +21,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+
+  <ItemGroup>
+    <!-- The connection-string normaliser is internal: it is an implementation
+         detail of this layer, not something the API should call. Its parsing
+         rules still deserve tests. -->
+    <InternalsVisibleTo Include="CafeOps.Tests" />
+  </ItemGroup>
+
 </Project>
