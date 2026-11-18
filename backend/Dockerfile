@@ -34,6 +34,22 @@ RUN dotnet publish src/CafeOps.Api/CafeOps.Api.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
+# Kerberos runtime library.
+#
+# The aspnet images are Debian slim and do not ship libgssapi_krb5.so.2. When Npgsql opens a
+# connection it looks at the authentication methods the server offers, and touching the
+# GSSAPI path makes .NET try to load that library. Postgres then falls back to SCRAM and the
+# connection succeeds, so the app works — but every connection logs
+#
+#   libgssapi_krb5.so.2: cannot open shared object file: No such file or directory
+#
+# which is alarming in production logs and buries anything that actually matters. Installing
+# it costs about a megabyte and makes the probe succeed quietly. This has to happen before
+# USER app, because apt needs root.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=build /app ./
 
 # Default for platforms that do not set PORT. Where one does — Render, Fly,
