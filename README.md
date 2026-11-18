@@ -113,8 +113,8 @@ the one credential you have to fetch yourself — is in
 
 ## Tests
 
-101 tests. 97 of them need no database, no secrets and no service containers,
-which is why CI runs the lot in seconds.
+132 tests. 110 need no database, no secrets and no service containers; the
+other 22 run against a real one when a connection string is configured.
 
 ```bash
 dotnet test backend/CafeOps.slnx
@@ -129,7 +129,21 @@ the pricing rules, the order validation, and the stock arithmetic. That they
 need nothing to run is a deliberate consequence of keeping the rules separate
 from the persistence.
 
-The other 4 are smoke tests that run each query against a real database, and
+**18 of them attack the security model.** Each one signs in as a staff member,
+a manager or an owner — by switching to the `authenticated` role and setting
+the JWT claims, exactly as PostgREST does — and then tries to do something it
+should not: insert an order directly, inflate a stock balance, mark an order
+paid, re-price a line, promote itself to owner. Every attempt must be refused
+by the database itself, not by the API and certainly not by the hidden tab in
+the UI. They run inside a transaction that is always rolled back, so they
+leave nothing behind.
+
+Writing them caught something worth knowing: on an `UPDATE`, row-level
+security **filters** rather than rejecting. A manager trying to change someone
+else's role gets no error at all — the statement succeeds and changes zero
+rows. Code that checks only for an exception would conclude it had worked.
+
+4 more are smoke tests that run each query against a real database, and
 they exist because of a failure nothing else could have caught. Npgsql
 materialises a Postgres `timestamptz` as a `DateTime` while the row records
 declared `DateTimeOffset`, so Dapper could not match a constructor: everything
@@ -185,7 +199,7 @@ backend/
   src/CafeOps.Domain/       pure rules: pricing, validation, stock maths
   src/CafeOps.Infrastructure/  Npgsql + Dapper, one transaction per operation
   src/CafeOps.Api/          controllers, JWT auth, role policies
-  tests/CafeOps.Tests/      71 tests: 67 unit, 4 against a live database
+  tests/CafeOps.Tests/      102 tests: 80 unit, 22 against a live database
 supabase/
   migrations/               the schema, in order; source of truth
   seed.sql                  idempotent demo data
@@ -204,9 +218,8 @@ Worth stating plainly rather than leaving for someone to find:
 - **The board re-reads on change rather than patching the changed row.** Correct
   and simple at a cafe's scale; it would need to become incremental at
   thousands of open orders.
-- **Database testing is only half done.** Four smoke tests exercise each query
-  against a real database, which is enough to catch a column that no longer
-  matches its record. But they only run where a connection string happens to be
-  configured, so CI never runs them, and the RLS policies and guard triggers
-  have no tests at all. Testcontainers would give CI a disposable Postgres and
-  close both gaps; it is the first thing I would add next.
+- **The database tests never run in CI.** 22 of them — the security suite and
+  the query smoke tests — need a real Postgres, and they no-op without a
+  connection string. So every push is green whether or not they would pass.
+  Testcontainers would give CI a disposable database and make them
+  unconditional; it is the first thing I would add next.

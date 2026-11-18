@@ -110,6 +110,21 @@ What RLS cannot express is column-level intent: "a client may update
 the API by whether the statement carries a user JWT — `auth.uid() is null` is
 true for the API's connection and for migrations, and never for a client.
 
+**This is the one claim in this document that is tested rather than asserted.**
+`RowLevelSecurityTests` signs in as staff, manager and owner — switching to the
+`authenticated` role and setting `request.jwt.claims`, the way PostgREST does —
+and then tries to insert an order, write the ledger, inflate a balance, mark an
+order paid, re-price a line and promote itself. Eighteen tests, each one an
+attack that has to fail, plus the legitimate actions that must still succeed,
+because a policy that refuses everything is not secure, it is broken.
+
+Writing them surfaced something worth stating plainly: on an `UPDATE`, RLS
+**filters** rather than rejecting. A manager attempting to change another
+user's role gets no error — the statement succeeds and affects zero rows. Any
+code that treats "no exception" as "it worked" would be wrong, which is also
+why the test asserts on the row count and on the number of owners afterwards,
+not on an exception.
+
 ---
 
 ## 6. SQL migrations, not ORM migrations
@@ -228,13 +243,12 @@ to the change that introduced it.
 
 In the order I would actually do it:
 
-1. **Integration tests against a real Postgres** with Testcontainers, finishing
-   what the four smoke tests started. Those cover materialisation and the
-   place-then-cancel round trip, but only when a developer happens to have a
-   connection string configured, so CI never runs them. A disposable Postgres
-   would make them unconditional and let the RLS policies and guard triggers be
-   tested properly — those are the security boundary and currently nothing
-   verifies they do what section 5 claims.
+1. **Testcontainers**, so the 22 database tests run in CI. The security suite
+   in section 5 and the query smoke tests both need a real Postgres, and they
+   no-op without a connection string — which means every push is green whether
+   or not they would pass. A disposable Postgres per run makes them
+   unconditional. That is the remaining half of the gap; the tests themselves
+   now exist.
 2. **A payment provider**, so taking money is a payment rather than a state
    change.
 3. **Shift reporting** — takings per person per shift, which is the first thing
