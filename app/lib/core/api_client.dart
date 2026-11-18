@@ -54,7 +54,14 @@ class ApiClient {
   final http.Client _http;
   final String _baseUrl;
 
-  static const Duration _timeout = Duration(seconds: 20);
+  /// Generous on purpose.
+  ///
+  /// A free-tier container is suspended after a few minutes idle, and the
+  /// first request afterwards pays the whole cold start — often 30 to 60
+  /// seconds. A tighter timeout turns that into "cannot reach the API" on the
+  /// very first thing a visitor tries, which is the worst possible moment to
+  /// look broken. Once warm, these calls finish in well under a second.
+  static const Duration _timeout = Duration(seconds: 90);
 
   Future<Map<String, dynamic>> getJson(
     String path, {
