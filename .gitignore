@@ -6,6 +6,7 @@
 **/appsettings.Local.json
 **/appsettings.*.Local.json
 app/lib/config/env.local.dart
+D:\project-flutter\pw.txt
 
 # ------------------------------------------------------------------- .NET --
 [Bb]in/
@@ -55,3 +56,4 @@ supabase/.branches/
 .DS_Store
 Thumbs.db
 desktop.ini
+pw.txt
